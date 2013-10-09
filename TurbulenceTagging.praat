@@ -135,6 +135,13 @@ wordListTargetC$     = "TargetC"
 wordListTargetV      = 6
 wordListTargetV$     = "TargetV"
 
+# Tagging labels.
+consOnset$  = "consOnset"
+turbOnset$  = "turbOnset"
+turbOffset$ = "turbOffset"
+vot$        = "VOT"
+vowelEnd$   = "vowelEnd"
+
 
 
 # Prompt the tagger for her initials.
@@ -484,16 +491,51 @@ while trial <= nTrials
             Set interval text... 'tagTextGridTurbNotes' 'turbNotesInterval' 'notes$'
           endif
           if (consonant_type == 1) | (consonant_type == 2)
+            # Ask the tagger if it is necessary to tag consOnset separately from
+            # turbOnset.
+            beginPause ("Turbulence Tagging")
+              comment ("Is it necessary to tag `'consOnset$'` separately from `'turbOnset$'`?")
+            button = endPause ("No", "Yes", 2, 1)
+            tagConsOnset = (button == 2)
+            if tagConsOnset
+              # Automatically insert a `consOnset` marker on the TurbEvents tier,
+              # and prompt the tagger to adjust its position manually.
+              consOnsetDropTime = 'segmentXMin' + 0.2
+              select TextGrid 'taggingBasename$'
+              Insert point... 'tagTextGridTurbEvent' 'consOnsetDropTime' 'consOnset$'
+              beginPause ("Turbulence Tagging")
+                comment ("Adjust the `'consOnset$'` marker in the Editor window.")                
+                comment ("    Trial number: 'trialNumber$'")
+                comment ("    Target word: 'targetWord$'")
+                comment ("    Target consonant: 'targetCons$'")
+                comment ("    Target vowel: 'targetVowel$'")
+              endPause ("Continue", 1, 1)
+              # Determine the time of the `consOnset` marker, as positioned
+              # by the tagger.
+              select TextGrid 'taggingBasename$'
+              Extract part... 'segmentXMin' 'segmentXMax' 1
+              select TextGrid 'taggingBasename$'_part
+              Down to Table... 0 6 1 0
+              select TextGrid 'taggingBasename$'_part
+              Remove
+              select Table 'taggingBasename$'_part
+              consOnsetRow = Search column... text 'consOnset$'
+              consOnsetTime = Get value... 'consOnsetRow' tmin
+              Remove
+            else
+              consOnsetTime = segmentXMin
+            endif
             # Automatically insert a `turbOnset` marker on the TurbEvents tier,
             # and prompt the tagger to adjust its position manually.
+            turbOnsetDropTime = 'consOnsetTime' + 0.2
             select TextGrid 'taggingBasename$'
-            Insert point... 'tagTextGridTurbEvent' 'segmentXMid' turbOnset
+            Insert point... 'tagTextGridTurbEvent' 'turbOnsetDropTime' 'turbOnset$'
             beginPause ("Turbulence Tagging")
-              comment ("Trial number: 'trialNumber$'")
-              comment ("Target word: 'targetWord$'")
-              comment ("Target consonant: 'targetCons$'")
-              comment ("Target vowel: 'targetVowel$'")
-              comment ("Adjust the `turbOnset` marker in the Editor window.")
+              comment ("Adjust the `'turbOnset$'` marker in the Editor window.")
+              comment ("    Trial number: 'trialNumber$'")
+              comment ("    Target word: 'targetWord$'")
+              comment ("    Target consonant: 'targetCons$'")
+              comment ("    Target vowel: 'targetVowel$'")
             endPause ("Continue", 1, 1)
             # Determine the time of the `turbOnset` marker, as positioned
             # by the tagger.
@@ -504,20 +546,20 @@ while trial <= nTrials
             select TextGrid 'taggingBasename$'_part
             Remove
             select Table 'taggingBasename$'_part
-            turbOnsetRow = Search column... text turbOnset
+            turbOnsetRow = Search column... text 'turbOnset$'
             turbOnsetTime = Get value... 'turbOnsetRow' tmin
             Remove
             # Automatically insert a `VOT` marker on the TurbEvents tier,
             # and prompt the tagger to adjust its position manually.
-            votDropTime = ('turbOnsetTime' + 'segmentXMax') / 2
+            votDropTime = 'turbOnsetTime' + 0.2
             select TextGrid 'taggingBasename$'
-            Insert point... 'tagTextGridTurbEvent' 'votDropTime' VOT
+            Insert point... 'tagTextGridTurbEvent' 'votDropTime' 'vot$'
             beginPause ("Turbulence Tagging")
-              comment ("Trial number: 'trialNumber$'")
-              comment ("Target word: 'targetWord$'")
-              comment ("Target consonant: 'targetCons$'")
-              comment ("Target vowel: 'targetVowel$'")
-              comment ("Adjust the `VOT` marker in the Editor window.")
+              comment ("Adjust the `'vot$'` marker in the Editor window.")
+              comment ("    Trial number: 'trialNumber$'")
+              comment ("    Target word: 'targetWord$'")
+              comment ("    Target consonant: 'targetCons$'")
+              comment ("    Target vowel: 'targetVowel$'")
             endPause ("Continue", 1, 1)
             # Determine the time of the `VOT` marker, as positioned by
             # the tagger.
@@ -531,46 +573,71 @@ while trial <= nTrials
             votRow = Search column... text VOT
             votTime = Get value... 'votRow' tmin
             Remove
-            # Prompt the tagger to position the cursor at the time where
-            # a `turbOffset` tag should go.
+            # Highlight the central 40 ms of the sibilant, as determined
+            # by the turbOnset and VOT times.
+            turbOffsetZoomXMin = 'turbOnsetTime' - 0.05
+            turbOffsetZoomXMax = 'votTime' + 0.05
+            analysisWindowXMin = (('turbOnsetTime' + 'votTime') / 2) - 0.02
+            analysisWindowXMax = 'analysisWindowXMin' + 0.04
+            editor TextGrid 'taggingBasename$'
+              Zoom... 'turbOffsetZoomXMin' 'turbOffsetZoomXMax'
+              Select... 'analysisWindowXMin' 'analysisWindowXMax'
+            endeditor
+            # Ask the tagger if it is necessary to tag turbOffset separately from
+            # VOT.
             beginPause ("Turbulence Tagging")
-              comment ("Trial number: 'trialNumber$'")
-              comment ("Target word: 'targetWord$'")
-              comment ("Target consonant: 'targetCons$'")
-              comment ("Target vowel: 'targetVowel$'")
-              comment ("In the Editor window, move the cursor to the `turbOffset` location, if applicable.")
-            button = endPause ("No aspiration", "Mark turbOffset", 2, 1)
-            aspirationPresent = (button == 2)
-            if aspirationPresent
-              # The tagger decided that there is aspiration to mark, so
-              # compare whether the turbOffset is prior to 20 ms after the 
-              # midpoint between turbOnset and VOT.
-              editor TextGrid 'taggingBasename$'
-                turbOffsetTime = Get cursor
-              endeditor
-              analysisWindowXMax = (('turbOnsetTime' + 'votTime') / 2) + 0.02
-              turbOffsetNecessary = (turbOffsetTime < analysisWindowXMax)
-              if turbOffsetNecessary
-                select TextGrid 'taggingBasename$'
-                Insert point... 'tagTextGridTurbEvent' 'turbOffsetTime' turbOffset
-              endif
+              comment ("Is it necessary to tag `'turbOffset$'` separately from `'vot$'`?")
+            button = endPause ("No", "Yes", 2, 1)
+            tagTurbOffset = (button == 2)
+            if tagTurbOffset
+              # Automatically insert a `turbOffset` marker on the TurbEvents tier,
+              # and prompt the tagger to adjust its position manually.
+              turbOffsetDropTime = ('turbOnsetTime' + 'votTime') / 2
+              select TextGrid 'taggingBasename$'
+              Insert point... 'tagTextGridTurbEvent' 'turbOffsetDropTime' 'turbOffset$'
+              beginPause ("Turbulence Tagging")
+                comment ("Adjust the `'turbOffset$'` marker in the Editor window.")
+                comment ("    Trial number: 'trialNumber$'")
+                comment ("    Target word: 'targetWord$'")
+                comment ("    Target consonant: 'targetCons$'")
+                comment ("    Target vowel: 'targetVowel$'")
+              endPause ("Continue", 1, 1)
             endif
+#            # Prompt the tagger to position the cursor at the time where
+#            # a `turbOffset` tag should go.
+#            beginPause ("Turbulence Tagging")
+#              comment ("Trial number: 'trialNumber$'")
+#              comment ("Target word: 'targetWord$'")
+#              comment ("Target consonant: 'targetCons$'")
+#              comment ("Target vowel: 'targetVowel$'")
+#              comment ("In the Editor window, move the cursor to the `turbOffset` location, if applicable.")
+#            button = endPause ("No aspiration", "Mark turbOffset", 2, 1)
+#            aspirationPresent = (button == 2)
+#            if aspirationPresent
+#              # The tagger decided that there is aspiration to mark, so
+#              # compare whether the turbOffset is prior to 20 ms after the 
+#              # midpoint between turbOnset and VOT.
+#              editor TextGrid 'taggingBasename$'
+#                turbOffsetTime = Get cursor
+#              endeditor
+#              analysisWindowXMax = (('turbOnsetTime' + 'votTime') / 2) + 0.02
+#              turbOffsetNecessary = (turbOffsetTime < analysisWindowXMax)
+#              if turbOffsetNecessary
+#                select TextGrid 'taggingBasename$'
+#                Insert point... 'tagTextGridTurbEvent' 'turbOffsetTime' turbOffset
+#              endif
+#            endif
             # Automatically insert a `vowelEnd` marker on the TurbEvents tier,
             # and prompt the tagger to adjust its position manually.
-            vowelEndDropTime = ('votTime' + 'segmentXMax') / 2
+            vowelEndDropTime = 'votTime' + 0.2
             select TextGrid 'taggingBasename$'
-            Insert point... 'tagTextGridTurbEvent' 'vowelEndDropTime' vowelEnd
+            Insert point... 'tagTextGridTurbEvent' 'vowelEndDropTime' 'vowelEnd$'
             beginPause ("Turbulence Tagging")
-              comment ("Trial number: 'trialNumber$'")
-              comment ("Target word: 'targetWord$'")
-              comment ("Target consonant: 'targetCons$'")
-              comment ("Target vowel: 'targetVowel$'")
-              if (not aspirationPresent)
-                comment ("There is no aspiration in the fricative, so a `turbOffset` marker was not inserted.")
-              elsif (not turbOffsetNecessary)
-                comment ("The aspiration came late in the fricative, so a `turbOffset` marker was not inserted.")
-              endif
-              comment ("Adjust the `vowelEnd` marker in the Editor window.")
+              comment ("Adjust the `'vowelEnd$'` marker in the Editor window.")
+              comment ("    Trial number: 'trialNumber$'")
+              comment ("    Target word: 'targetWord$'")
+              comment ("    Target consonant: 'targetCons$'")
+              comment ("    Target vowel: 'targetVowel$'")
             endPause ("Continue", 1, 1)
 #            select TextGrid 'taggingBasename$'
 #            Insert point... 'tagTextGridTurbEvent' 'segmentXMin' turbOnset
