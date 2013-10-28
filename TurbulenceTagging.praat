@@ -1,6 +1,15 @@
 # Author: Patrick Reidy
 # Date: 10 August 2013
 
+# Revision author: Patrick Reidy
+# Date: 9 October 2013 (apparently)
+# Changes: Augmented the tag-set
+
+# Revision author: Mary Beckman
+# Date: 25 October 2013
+# Changes: Changed the specification of local filesystem variables to be
+#                include TurbulenceTaggingDirectories.praat
+
 
 # What are the criteria for deciding which segmented productions
 # are tagged?
@@ -67,23 +76,9 @@
 #   * Turbulence Tagging TextGrid
 #   * Turbulence Tagging Log
 
-
-
-
-
-
-
-
-
-
-
-
-# Local filesystem constants.
-segmentDirectory$  = "/media/bluelacy/patrick/Code/L2T-TurbulenceTagging/Testing/SegmentedTextGrids"
-audioDirectory$    = "/media/bluelacy/patrick/Code/L2T-TurbulenceTagging/Testing/Audio"
-wordListDirectory$ = "/media/bluelacy/patrick/Code/L2T-TurbulenceTagging/Testing/WordLists"
-tagLogDirectory$   = "/media/bluelacy/patrick/Code/L2T-TurbulenceTagging/Testing/TurbulenceTaggingLogs"
-taggingDirectory$  = "/media/bluelacy/patrick/Code/L2T-TurbulenceTagging/Testing/TurbulenceTaggingTextGrids"
+# Local filesystem constants.   Include the script that specifies the directory path names
+# for this particular Turbulence Tagger.
+include TurbulenceTaggingDirectories.praat
 
 # Description of the Turbulence Tagging Log.
 # A table with one row and the following columns (values).
